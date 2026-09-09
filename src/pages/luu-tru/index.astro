@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const [vietEntries, nghienCuuEntries, yTuongEntries, truyenEntries] = await Promise.all([
+  getCollection('viet', ({ data }) => data.status === 'published'),
+  getCollection('nghiencuu', ({ data }) => data.status === 'published'),
+  getCollection('ytuong', ({ data }) => data.status === 'published'),
+  getCollection('truyen', ({ data }) => data.status === 'published'),
+]);
+
+type Row = { title: string; date: Date; href: string; kind: string };
+
+const all: Row[] = [
+  ...vietEntries.map(e => ({ title: e.data.title, date: e.data.date, href: `/viet/${e.id}/`, kind: 'Viết' })),
+  ...nghienCuuEntries.map(e => ({ title: e.data.title, date: e.data.date, href: `/nghien-cuu/${e.id}/`, kind: 'Nghiên cứu' })),
+  ...yTuongEntries.map(e => ({ title: e.data.title, date: e.data.date, href: `/y-tuong/${e.id}/`, kind: 'Ý tưởng' })),
+  ...truyenEntries.map(e => ({ title: e.data.title, date: e.data.date, href: `/truyen/${e.id}/`, kind: 'Truyện' })),
+].sort((a, b) => b.date.valueOf() - a.date.valueOf());
+
+// Gom theo Năm -> Tháng, hoàn toàn tự động từ ngày tháng của mỗi bài.
+const monthNames = ['Tháng Một','Tháng Hai','Tháng Ba','Tháng Tư','Tháng Năm','Tháng Sáu','Tháng Bảy','Tháng Tám','Tháng Chín','Tháng Mười','Tháng Mười Một','Tháng Mười Hai'];
+
+const byYear = new Map<number, Map<number, Row[]>>();
+for (const row of all) {
+  const y = row.date.getFullYear();
+  const m = row.date.getMonth();
+  if (!byYear.has(y)) byYear.set(y, new Map());
+  const months = byYear.get(y)!;
+  if (!months.has(m)) months.set(m, []);
+  months.get(m)!.push(row);
+}
+const years = [...byYear.keys()].sort((a, b) => b - a);
+---
+<BaseLayout title="Lưu trữ">
+  <h1>Lưu trữ</h1>
+  <p class="byline" style="margin-bottom: 2.5rem;">
+    Không phải nơi cất những gì bị bỏ quên — đây là lịch sử tư duy, tự động gom lại theo thời gian từ mọi bài đã viết.
+  </p>
+
+  {years.length === 0 && <p style="color: var(--muted); font-family: var(--font-sans);">Chưa có gì để nhìn lại — nhưng rồi sẽ có.</p>}
+
+  {years.map(year => {
+    const months = byYear.get(year)!;
+    const monthKeys = [...months.keys()].sort((a, b) => b - a);
+    return (
+      <div class="year-group">
+        <h2>{year}</h2>
+        {monthKeys.map(m => (
+          <div style="margin-bottom: 1.5rem;">
+            <p class="entry-meta" style="margin-bottom: 0.4rem;">{monthNames[m]}</p>
+            <ul class="entry-list">
+              {months.get(m)!.map(row => (
+                <li>
+                  <a href={row.href}>{row.title}</a>
+                  <div class="entry-meta">{row.kind} · {row.date.toLocaleDateString('vi-VN')}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  })}
+</BaseLayout>

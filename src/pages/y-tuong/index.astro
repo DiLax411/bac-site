@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const entries = (await getCollection('ytuong', ({ data }) => data.status === 'published'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+<BaseLayout title="Ý tưởng">
+  <h1>Ý tưởng</h1>
+  <p class="byline" style="margin-bottom: 2rem;">Mảnh suy nghĩ, câu hỏi, quan sát chưa cần hoàn thiện. Một vài trong số này có thể lớn lên sau.</p>
+  <ul class="entry-list">
+    {entries.map(entry => (
+      <li>
+        <a href={`/y-tuong/${entry.id}/`}>{entry.data.title}</a>
+        <div class="entry-meta">{entry.data.date.toLocaleDateString('vi-VN')}{entry.data.subtitle ? ` · ${entry.data.subtitle}` : ''}</div>
+      </li>
+    ))}
+    {entries.length === 0 && <li style="border:none; color: var(--muted); font-family: var(--font-sans);">Chưa có ý tưởng nào ở đây.</li>}
+  </ul>
+</BaseLayout>

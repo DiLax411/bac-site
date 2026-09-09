@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getAllPublishedEntries, slugifyTag } from '../../../lib/entries';
+
+export async function getStaticPaths() {
+  const all = await getAllPublishedEntries();
+
+  // slug -> tên tag gốc (giữ nguyên dấu để hiển thị)
+  const slugToTag = new Map<string, string>();
+  for (const entry of all) {
+    for (const t of entry.tags) {
+      slugToTag.set(slugifyTag(t), t);
+    }
+  }
+
+  return [...slugToTag.entries()].map(([slug, tag]) => ({
+    params: { tag: slug },
+    props: { tag },
+  }));
+}
+
+const { tag } = Astro.props;
+const all = await getAllPublishedEntries();
+const entries = all.filter(e => e.tags.includes(tag));
+---
+<BaseLayout title={`Tag: ${tag}`} description={`Các bài viết được gắn tag "${tag}" trên Bấc.`}>
+  <p class="byline"><a href="/tags/">← Toàn bộ tags</a></p>
+  <h1>#{tag}</h1>
+  <p class="byline" style="margin-bottom: 2.5rem;">{entries.length} bài viết</p>
+
+  <ul class="entry-list">
+    {entries.map(e => (
+      <li>
+        <a href={e.href}>{e.title}</a>
+        <div class="entry-meta">{e.kind} · {e.date.toLocaleDateString('vi-VN')}</div>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const entries = (await getCollection('nghiencuu', ({ data }) => data.status === 'published'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+<BaseLayout title="Nghiên cứu">
+  <h1>Nghiên cứu</h1>
+  <p class="byline" style="margin-bottom: 2rem;">Những gì đang được tìm hiểu, dựa trên nguồn, tài liệu, bằng chứng bên ngoài.</p>
+  <ul class="entry-list">
+    {entries.map(entry => (
+      <li>
+        <a href={`/nghien-cuu/${entry.id}/`}>{entry.data.title}</a>
+        <div class="entry-meta">{entry.data.date.toLocaleDateString('vi-VN')}{entry.data.subtitle ? ` · ${entry.data.subtitle}` : ''}</div>
+      </li>
+    ))}
+    {entries.length === 0 && <li style="border:none; color: var(--muted); font-family: var(--font-sans);">Chưa có ghi chú nào ở đây.</li>}
+  </ul>
+</BaseLayout>

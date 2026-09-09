@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getTagCounts, slugifyTag } from '../../lib/entries';
+
+const tagCounts = await getTagCounts();
+---
+<BaseLayout title="Tags" description="Toàn bộ chủ đề đã xuất hiện trên Bấc.">
+  <h1>Tags</h1>
+  <p class="byline" style="margin-bottom: 2.5rem;">
+    Mỗi tag là một sợi chỉ nối những suy nghĩ rời rạc lại với nhau.
+  </p>
+
+  {tagCounts.length === 0 && <p style="color: var(--muted); font-family: var(--font-sans);">Chưa có tag nào.</p>}
+
+  <p>
+    {tagCounts.map(({ tag, count }) => (
+      <a class="tag" href={`/tags/${slugifyTag(tag)}/`} style="font-size: 0.9rem; padding: 4px 10px;">
+        {tag} <span style="opacity: 0.65;">· {count}</span>
+      </a>
+    ))}
+  </p>
+</BaseLayout>

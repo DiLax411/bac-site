@@ -1,0 +1,58 @@
+---
+import greetings from '../data/greetings.json';
+import quotes from '../data/quotes.json';
+import audioLib from '../data/audio.json';
+---
+<section id="welcome" data-greetings={JSON.stringify(greetings)} data-quotes={JSON.stringify(quotes)} data-audio={JSON.stringify(audioLib)}>
+  <p class="byline" id="greeting-slot">…</p>
+  <blockquote class="quote" id="quote-slot"></blockquote>
+  <button class="audio-btn" id="audio-toggle" aria-pressed="false">
+    <span aria-hidden="true">♪</span>
+    <span id="audio-label">nghe một chút</span>
+  </button>
+  <audio id="ambient-audio" preload="none"></audio>
+</section>
+
+<script>
+  const root = document.getElementById('welcome');
+  if (root) {
+    const greetings = JSON.parse(root.dataset.greetings || '[]');
+    const quotes = JSON.parse(root.dataset.quotes || '[]');
+    const audioLib = JSON.parse(root.dataset.audio || '[]');
+
+    const pick = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+
+    const greetingSlot = document.getElementById('greeting-slot');
+    const quoteSlot = document.getElementById('quote-slot');
+    if (greetingSlot && greetings.length) greetingSlot.textContent = pick(greetings);
+    if (quoteSlot && quotes.length) {
+      const q = pick(quotes);
+      quoteSlot.innerHTML = `“${q.text}”<cite>— ${q.by}</cite>`;
+    }
+
+    const audioEl = document.getElementById('ambient-audio') as HTMLAudioElement | null;
+    const toggleBtn = document.getElementById('audio-toggle');
+    const label = document.getElementById('audio-label');
+    if (audioEl && toggleBtn && audioLib.length) {
+      const chosen = pick(audioLib);
+      audioEl.src = chosen.src;
+      let playing = false;
+      toggleBtn.addEventListener('click', () => {
+        if (!playing) {
+          audioEl.volume = 0.35;
+          audioEl.play().catch(() => {
+            if (label) label.textContent = 'chưa có âm thanh ở đây';
+          });
+          playing = true;
+          toggleBtn.setAttribute('aria-pressed', 'true');
+          if (label) label.textContent = `đang nghe · ${chosen.label}`;
+        } else {
+          audioEl.pause();
+          playing = false;
+          toggleBtn.setAttribute('aria-pressed', 'false');
+          if (label) label.textContent = 'nghe một chút';
+        }
+      });
+    }
+  }
+</script>

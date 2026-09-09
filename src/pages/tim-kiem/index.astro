@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Tìm kiếm" description="Tìm kiếm trong toàn bộ nội dung của Bấc.">
+  <h1>Tìm kiếm</h1>
+  <p class="byline" style="margin-bottom: 2.5rem;">
+    Tìm theo tiêu đề, tag, hoặc bất kỳ từ nào xuất hiện trong bài viết.
+  </p>
+
+  <div id="search"></div>
+
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+  <script src="/pagefind/pagefind-ui.js" is:inline></script>
+  <script is:inline>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof PagefindUI === 'undefined') return;
+      new PagefindUI({
+        element: '#search',
+        showSubResults: true,
+        showImages: false,
+        translations: {
+          placeholder: 'Nhập từ khoá...',
+          clear_search: 'Xoá',
+          load_more: 'Xem thêm kết quả',
+          search_label: 'Tìm kiếm',
+          filters_label: 'Bộ lọc',
+          zero_results: 'Không tìm thấy kết quả cho [SEARCH_TERM]',
+          many_results: '[COUNT] kết quả cho [SEARCH_TERM]',
+          one_result: '[COUNT] kết quả cho [SEARCH_TERM]',
+          alt_search: 'Không có kết quả cho [SEARCH_TERM]. Hiển thị kết quả cho [DIFFERENT_TERM].',
+          search_suggestion: 'Không có kết quả cho [SEARCH_TERM]. Thử tìm [DIFFERENT_TERM].',
+          searching: 'Đang tìm [SEARCH_TERM]...',
+        },
+      });
+    });
+  </script>
+</BaseLayout>
+
+<style is:global>
+  #search {
+    --pagefind-ui-scale: 0.95;
+    --pagefind-ui-primary: var(--accent);
+    --pagefind-ui-text: var(--ink);
+    --pagefind-ui-background: var(--bg);
+    --pagefind-ui-border: var(--rule);
+    --pagefind-ui-tag: var(--bg-raised);
+    --pagefind-ui-font: var(--font-sans);
+    --pagefind-ui-border-radius: 3px;
+    --pagefind-ui-border-width: 1px;
+  }
+  #search .pagefind-ui__result-title a { color: var(--ink); }
+  #search .pagefind-ui__result-title a:hover { color: var(--accent); }
+</style>

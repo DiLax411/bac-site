@@ -1,0 +1,67 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import CommentSection from '../components/CommentSection.astro';
+import { slugifyTag, findEntryById, findEntriesReferencing, type UnifiedEntry } from '../lib/entries';
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  date: Date;
+  updated?: Date;
+  tags?: string[];
+  kind: 'Viết' | 'Nghiên cứu' | 'Ý tưởng' | 'Truyện';
+  cover?: string;
+  /** id của bài mà bài này cập nhật/phản hồi quan điểm (tuỳ chọn). */
+  changedMindFrom?: string;
+  /** id của chính bài hiện tại, dùng để tìm những bài sau này phản hồi lại nó. */
+  selfId?: string;
+  /** khoá duy nhất dùng cho hệ thống bình luận, dạng "collection:id". */
+  commentEntryId?: string;
+}
+const { title, subtitle, date, updated, tags = [], kind, cover, changedMindFrom, selfId, commentEntryId } = Astro.props;
+
+const dateLabel = date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+const olderEntry: UnifiedEntry | undefined = changedMindFrom ? await findEntryById(changedMindFrom) : undefined;
+const newerEntries: UnifiedEntry[] = selfId ? await findEntriesReferencing(selfId) : [];
+---
+<BaseLayout title={title}>
+  <article class="prose">
+    <p class="byline">{kind}{updated ? ` · cập nhật ${updated.toLocaleDateString('vi-VN')}` : ''}</p>
+    <h1>{title}</h1>
+    {subtitle && <p class="quote" style="margin-top:0">{subtitle}</p>}
+    <p class="entry-meta">{dateLabel}</p>
+
+    {olderEntry && (
+      <p class="mind-change-note">
+        Bài này cập nhật quan điểm từ <a href={olderEntry.href}>{olderEntry.title}</a>.
+      </p>
+    )}
+
+    {cover && <img src={cover} alt="" class="cover-image" />}
+    <hr class="rule" style="margin: 1.5rem 0 2rem;" />
+    <slot />
+
+    {tags.length > 0 && (
+      <p style="margin-top: 3rem;">
+        {tags.map((t: string) => <a class="tag" href={`/tags/${slugifyTag(t)}/`}>{t}</a>)}
+      </p>
+    )}
+
+    {newerEntries.length > 0 && (
+      <div class="mind-change-note" style="margin-top: 2rem;">
+        <p style="margin: 0 0 0.4rem;">Suy nghĩ này đã được cập nhật ở bài viết sau:</p>
+        <ul class="entry-list" style="margin: 0;">
+          {newerEntries.map(e => (
+            <li>
+              <a href={e.href}>{e.title}</a>
+              <div class="entry-meta">{e.kind} · {e.date.toLocaleDateString('vi-VN')}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </article>
+
+  {commentEntryId && <CommentSection entryId={commentEntryId} />}
+</BaseLayout>

@@ -1,0 +1,84 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Duyệt bình luận" description="Trang riêng tư, không cần liên kết công khai.">
+  <h1>Duyệt bình luận</h1>
+  <p class="byline" style="margin-bottom: 1.5rem;">
+    Nhập token quản trị (đã đặt trong Cloudflare Pages env var <code>ADMIN_TOKEN</code>) để xem bình luận đang chờ.
+  </p>
+
+  <div id="auth-box">
+    <input id="token-input" type="password" placeholder="Admin token" class="comment-input" style="max-width: 20rem;" />
+    <button id="token-submit" class="comment-submit">Vào</button>
+  </div>
+
+  <ul id="pending-list" class="comment-list" style="margin-top: 2rem;"></ul>
+</BaseLayout>
+
+<script>
+  const STORAGE_KEY = 'bac-admin-token';
+
+  function escapeHtml(str: string) {
+    return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+  }
+
+  async function loadPending(token: string) {
+    const list = document.getElementById('pending-list')!;
+    list.innerHTML = '<li class="comment-loading">Đang tải...</li>';
+
+    const res = await fetch('/api/admin/comments', { headers: { 'x-admin-token': token } });
+    if (!res.ok) {
+      list.innerHTML = '<li class="comment-empty">Token sai hoặc chưa cấu hình ADMIN_TOKEN.</li>';
+      return;
+    }
+    const data = await res.json();
+    const comments = data.comments || [];
+
+    if (comments.length === 0) {
+      list.innerHTML = '<li class="comment-empty">Không có bình luận nào đang chờ duyệt.</li>';
+      return;
+    }
+
+    list.innerHTML = comments
+      .map(
+        (c: any) => `
+      <li class="comment-item" data-id="${c.id}">
+        <div class="comment-meta">${escapeHtml(c.entry_id)} · <strong>${escapeHtml(c.name)}</strong> · ${new Date(c.created_at).toLocaleString('vi-VN')}</div>
+        <div class="comment-body">${escapeHtml(c.body)}</div>
+        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+          <button class="comment-submit approve-btn" data-id="${c.id}">Duyệt</button>
+          <button class="comment-submit reject-btn" data-id="${c.id}" style="border-color: #b33; color: #b33;">Xoá</button>
+        </div>
+      </li>`
+      )
+      .join('');
+
+    list.querySelectorAll<HTMLButtonElement>('.approve-btn').forEach((btn) => {
+      btn.addEventListener('click', () => act(token, Number(btn.dataset.id), 'approve'));
+    });
+    list.querySelectorAll<HTMLButtonElement>('.reject-btn').forEach((btn) => {
+      btn.addEventListener('click', () => act(token, Number(btn.dataset.id), 'reject'));
+    });
+  }
+
+  async function act(token: string, id: number, action: 'approve' | 'reject') {
+    await fetch('/api/admin/comments', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', 'x-admin-token': token },
+      body: JSON.stringify({ id, action }),
+    });
+    loadPending(token);
+  }
+
+  const saved = sessionStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    (document.getElementById('token-input') as HTMLInputElement).value = saved;
+    loadPending(saved);
+  }
+
+  document.getElementById('token-submit')!.addEventListener('click', () => {
+    const token = (document.getElementById('token-input') as HTMLInputElement).value;
+    sessionStorage.setItem(STORAGE_KEY, token);
+    loadPending(token);
+  });
+</script>

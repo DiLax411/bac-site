@@ -1,0 +1,155 @@
+---
+interface Props {
+  entryId: string;
+}
+const { entryId } = Astro.props;
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+---
+<section class="comments" data-entry-id={entryId}>
+  <hr class="rule" style="margin: 3rem 0 2rem;" />
+  <h2 style="font-family: var(--font-sans); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);">
+    Bình luận
+  </h2>
+
+  <ul class="comment-list" data-comment-list>
+    <li class="comment-loading">Đang tải bình luận...</li>
+  </ul>
+
+  <form class="comment-form" data-comment-form>
+    <input
+      type="text"
+      name="name"
+      maxlength="60"
+      placeholder="Tên (không bắt buộc)"
+      class="comment-input"
+    />
+    <textarea
+      name="body"
+      required
+      minlength="2"
+      maxlength="2000"
+      rows="4"
+      placeholder="Viết bình luận..."
+      class="comment-input"
+    ></textarea>
+
+    {turnstileSiteKey ? (
+      <div class="cf-turnstile" data-sitekey={turnstileSiteKey}></div>
+    ) : (
+      <p style="font-size: 0.8rem; color: var(--muted);">
+        (Chưa cấu hình PUBLIC_TURNSTILE_SITE_KEY — form sẽ không gửi được cho tới khi thiết lập.)
+      </p>
+    )}
+
+    <button type="submit" class="comment-submit">Gửi bình luận</button>
+    <p class="comment-status" data-comment-status></p>
+  </form>
+</section>
+
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<script>
+  function escapeHtml(str: string) {
+    return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+  }
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  async function loadComments(section: HTMLElement) {
+    const entryId = section.dataset.entryId!;
+    const list = section.querySelector<HTMLUListElement>('[data-comment-list]')!;
+    try {
+      const res = await fetch(`/api/comments?entry=${encodeURIComponent(entryId)}`);
+      const data = await res.json();
+      const comments = data.comments || [];
+      if (comments.length === 0) {
+        list.innerHTML = '<li class="comment-empty">Chưa có bình luận nào. Hãy là người đầu tiên.</li>';
+        return;
+      }
+      list.innerHTML = comments
+        .map(
+          (c: any) => `
+        <li class="comment-item">
+          <div class="comment-meta"><strong>${escapeHtml(c.name)}</strong> · ${formatDate(c.created_at)}</div>
+          <div class="comment-body">${escapeHtml(c.body)}</div>
+        </li>`
+        )
+        .join('');
+    } catch {
+      list.innerHTML = '<li class="comment-empty">Không tải được bình luận, thử tải lại trang.</li>';
+    }
+  }
+
+  function initForm(section: HTMLElement) {
+    const entryId = section.dataset.entryId!;
+    const form = section.querySelector<HTMLFormElement>('[data-comment-form]')!;
+    const status = section.querySelector<HTMLElement>('[data-comment-status]')!;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      status.textContent = '';
+
+      const formData = new FormData(form);
+      const name = String(formData.get('name') || '');
+      const body = String(formData.get('body') || '');
+      const tokenInput = form.querySelector<HTMLTextAreaElement | HTMLInputElement>('[name="cf-turnstile-response"]');
+      const token = tokenInput ? tokenInput.value : '';
+
+      const submitBtn = form.querySelector<HTMLButtonElement>('.comment-submit')!;
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/comments', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ entry: entryId, name, body, token }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = data.error || 'Có lỗi xảy ra, thử lại nhé.';
+        } else {
+          status.textContent = data.message;
+          form.reset();
+          // @ts-ignore
+          if (window.turnstile) window.turnstile.reset();
+        }
+      } catch {
+        status.textContent = 'Không gửi được, kiểm tra lại kết nối mạng.';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('.comments').forEach((section) => {
+    loadComments(section);
+    initForm(section);
+  });
+</script>
+
+<style is:global>
+  .comment-list { list-style: none; padding: 0; margin: 0 0 2rem; }
+  .comment-item { padding: 0.9rem 0; border-bottom: 1px solid var(--rule); }
+  .comment-item:last-child { border-bottom: none; }
+  .comment-meta { font-family: var(--font-sans); font-size: 0.82rem; color: var(--muted); margin-bottom: 0.25rem; }
+  .comment-body { font-family: var(--font-sans); font-size: 0.95rem; white-space: pre-wrap; }
+  .comment-empty, .comment-loading {
+    font-family: var(--font-sans); font-size: 0.9rem; color: var(--muted); list-style: none; padding: 0.5rem 0;
+  }
+  .comment-form { display: flex; flex-direction: column; gap: 0.6rem; max-width: 32rem; }
+  .comment-input {
+    font-family: var(--font-sans); font-size: 0.92rem;
+    border: 1px solid var(--rule); border-radius: 3px; padding: 0.55rem 0.7rem;
+    background: var(--bg); color: var(--ink);
+  }
+  .comment-submit {
+    font-family: var(--font-sans); font-size: 0.88rem;
+    border: 1px solid var(--accent); color: var(--accent); background: transparent;
+    border-radius: 3px; padding: 0.5rem 1rem; cursor: pointer; align-self: flex-start;
+  }
+  .comment-submit:hover { background: var(--accent); color: var(--bg-raised); }
+  .comment-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .comment-status { font-family: var(--font-sans); font-size: 0.85rem; color: var(--muted); min-height: 1.2em; }
+</style>

@@ -1,0 +1,26 @@
+---
+import { getCollection, render } from 'astro:content';
+import EntryLayout from '../../../layouts/EntryLayout.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('ytuong');
+  return entries.map(entry => ({ params: { id: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<EntryLayout
+  title={entry.data.title}
+  subtitle={entry.data.subtitle}
+  date={entry.data.date}
+  updated={entry.data.updated}
+  tags={entry.data.tags}
+  kind="Ý tưởng"
+  cover={entry.data.cover}
+  changedMindFrom={entry.data.changedMindFrom}
+  selfId={entry.id}
+  commentEntryId={`ytuong:${entry.id}`}
+>
+  <Content />
+</EntryLayout>

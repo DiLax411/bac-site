@@ -1,0 +1,48 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = 'Bấc — nhật ký tư duy, viết, và những gì đang được học.' } = Astro.props;
+const { pathname } = Astro.url;
+
+const navItems = [
+  { href: '/', label: 'Bấc' },
+  { href: '/viet/', label: 'Viết' },
+  { href: '/nghien-cuu/', label: 'Nghiên cứu' },
+  { href: '/y-tuong/', label: 'Ý tưởng' },
+  { href: '/truyen/', label: 'Truyện' },
+  { href: '/luu-tru/', label: 'Lưu trữ' },
+  { href: '/tags/', label: 'Tags' },
+  { href: '/tim-kiem/', label: 'Tìm kiếm' },
+  { href: '/gioi-thieu/', label: 'Giới thiệu' },
+];
+---
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Bấc</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <nav class="nav" aria-label="Điều hướng chính">
+        {navItems.map(item => (
+          <a href={item.href} aria-current={pathname === item.href ? 'page' : undefined}>{item.label}</a>
+        ))}
+      </nav>
+      <main data-pagefind-body>
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <hr class="rule" />
+        <p>Bấc — một thư viện đang lớn dần theo thời gian.</p>
+      </footer>
+    </div>
+  </body>
+</html>
