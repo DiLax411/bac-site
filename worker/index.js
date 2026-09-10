@@ -59,7 +59,9 @@ async function handlePostComment(request, env) {
     }),
   });
   const verify = await verifyRes.json();
-  if (!verify.success) return json({ error: 'Xác thực chống spam thất bại, thử lại nhé' }, 400);
+  if (!verify.success) {
+    return json({ error: 'Xác thực chống spam thất bại, thử lại nhé', debug: verify['error-codes'] }, 400);
+  }
 
   await env.DB.prepare(
     'INSERT INTO comments (entry_id, name, body, created_at, approved) VALUES (?, ?, ?, ?, 0)'
