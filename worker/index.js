@@ -60,7 +60,12 @@ async function handlePostComment(request, env) {
   });
   const verify = await verifyRes.json();
   if (!verify.success) {
-    return json({ error: 'Xác thực chống spam thất bại, thử lại nhé', debug: verify['error-codes'] }, 400);
+    return json({
+      error: 'Xác thực chống spam thất bại, thử lại nhé',
+      debug: verify['error-codes'],
+      secretPresent: Boolean(env.TURNSTILE_SECRET_KEY),
+      secretLength: (env.TURNSTILE_SECRET_KEY || '').length,
+    }, 400);
   }
 
   await env.DB.prepare(
